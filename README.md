@@ -1,7 +1,7 @@
 ---
 title: SoundSpectrum
-colorFrom: teal
-colorTo: orange
+colorFrom: green
+colorTo: yellow
 sdk: static
 app_file: index.html
 pinned: false
