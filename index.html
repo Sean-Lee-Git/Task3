@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SoundSpectrum</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #16201d;
+      --muted: #65736f;
+      --paper: #f6f2e9;
+      --panel: rgba(255, 252, 243, 0.88);
+      --line: rgba(22, 32, 29, 0.16);
+      --field: #fffaf0;
+      --teal: #0f766e;
+      --teal-strong: #0b5e58;
+      --coral: #db4d3f;
+      --amber: #d58a1f;
+      --blue: #2d65b3;
+      --shadow: 0 24px 70px rgba(36, 40, 32, 0.18);
+      font-family: "Aptos", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 8% 16%, rgba(219, 77, 63, 0.18), transparent 24rem),
+        radial-gradient(circle at 88% 10%, rgba(15, 118, 110, 0.18), transparent 28rem),
+        linear-gradient(135deg, #f7efe0 0%, #edf5ee 48%, #f7f3e8 100%);
+      color: var(--ink);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 36px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 20px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--teal-strong);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 760px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.4rem, 6vw, 5.7rem);
+      line-height: 0.92;
+      letter-spacing: 0;
+    }
+
+    .summary {
+      margin: 14px 0 0;
+      max-width: 720px;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.55;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .button {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 16px;
+      background: var(--field);
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 750;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: rgba(15, 118, 110, 0.42);
+    }
+
+    .button:disabled {
+      cursor: not-allowed;
+      opacity: 0.52;
+    }
+
+    .button.primary {
+      border-color: var(--teal);
+      background: var(--teal);
+      color: white;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .visualizer {
+      padding: 18px;
+    }
+
+    .status-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      min-height: 92px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 250, 240, 0.74);
+      padding: 12px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 8px;
+      font-size: clamp(1.35rem, 3vw, 2.2rem);
+      line-height: 1;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #13211f;
+      aspect-ratio: 16 / 9;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .permission-note {
+      position: absolute;
+      inset: auto 14px 14px 14px;
+      border-radius: 8px;
+      padding: 12px 14px;
+      background: rgba(255, 250, 240, 0.9);
+      color: var(--ink);
+      font-weight: 650;
+      line-height: 1.42;
+    }
+
+    .alert {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 58px;
+      margin-top: 14px;
+      border: 1px solid rgba(219, 77, 63, 0.34);
+      border-radius: 8px;
+      padding: 12px 14px;
+      background: rgba(219, 77, 63, 0.11);
+    }
+
+    .alert strong {
+      color: var(--coral);
+    }
+
+    .side {
+      display: grid;
+      gap: 18px;
+    }
+
+    .section {
+      padding: 16px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1.02rem;
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      margin: 14px 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--teal);
+    }
+
+    .setting-value {
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .log-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .events {
+      display: grid;
+      gap: 8px;
+      max-height: 285px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .event {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 250, 240, 0.72);
+      padding: 10px;
+      font-size: 0.92rem;
+      line-height: 1.35;
+    }
+
+    .event time {
+      display: block;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .how-it-works {
+      margin-top: 18px;
+      padding: 18px;
+      line-height: 1.58;
+    }
+
+    .how-it-works p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    @media (max-width: 900px) {
+      header,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-actions {
+        justify-content: flex-start;
+      }
+
+      .status-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        width: min(100% - 20px, 1180px);
+        padding-top: 16px;
+      }
+
+      .status-row {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-actions,
+      .log-actions {
+        display: grid;
+      }
+
+      .button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <p class="eyebrow">Track B - live microphone analysis</p>
+        <h1>SoundSpectrum</h1>
+        <p class="summary">Capture microphone sound, extract DSP features in real time, visualize the frequency spectrum, and log loud spike events with confidence scores.</p>
+      </div>
+      <div class="hero-actions" aria-label="Microphone controls">
+        <button class="button primary" id="startButton" type="button">Start microphone</button>
+        <button class="button" id="stopButton" type="button" disabled>Stop</button>
+      </div>
+    </header>
+
+    <section class="layout" aria-label="Audio dashboard">
+      <div>
+        <div class="panel visualizer">
+          <div class="status-row" aria-label="Live metrics">
+            <div class="metric"><span>Volume</span><strong id="volumeValue">0%</strong></div>
+            <div class="metric"><span>Peak Frequency</span><strong id="peakValue">0 Hz</strong></div>
+            <div class="metric"><span>Spike Score</span><strong id="scoreValue">0.00</strong></div>
+            <div class="metric"><span>Events</span><strong id="eventCount">0</strong></div>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="spectrumCanvas" width="1200" height="675" aria-label="Live audio frequency spectrum"></canvas>
+            <div class="permission-note" id="statusMessage">Press Start microphone and allow browser microphone access to begin.</div>
+          </div>
+          <div class="alert" id="alertBox" role="status" aria-live="polite">
+            <span><strong>Status:</strong> waiting for audio input.</span>
+            <span id="latencyValue">0 ms</span>
+          </div>
+        </div>
+
+        <section class="panel how-it-works" aria-labelledby="howTitle">
+          <h2 id="howTitle">How it works</h2>
+          <p>This page uses the browser Web Audio API instead of uploading audio. It samples the microphone, computes a frequency spectrum with an analyser node, estimates loudness with RMS energy, finds the strongest frequency bin, and compares current energy against a rolling baseline. The score is a heuristic confidence for sudden audio spikes, so it is useful for monitoring sound changes but is not a trained speech or music classifier.</p>
+        </section>
+      </div>
+
+      <aside class="side">
+        <section class="panel section" aria-labelledby="settingsTitle">
+          <h2 id="settingsTitle">Settings</h2>
+          <label>
+            Spike sensitivity <span class="setting-value" id="sensitivityText">1.60x baseline</span>
+            <input id="sensitivityInput" type="range" min="1.10" max="3.00" value="1.60" step="0.05" />
+          </label>
+          <label>
+            Minimum volume <span class="setting-value" id="minimumText">8%</span>
+            <input id="minimumInput" type="range" min="1" max="40" value="8" step="1" />
+          </label>
+          <label>
+            Smoothing <span class="setting-value" id="smoothingText">0.72</span>
+            <input id="smoothingInput" type="range" min="0" max="0.95" value="0.72" step="0.01" />
+          </label>
+        </section>
+
+        <section class="panel section" aria-labelledby="eventsTitle">
+          <h2 id="eventsTitle">Event Log</h2>
+          <div class="log-actions">
+            <button class="button" id="exportButton" type="button">Export CSV</button>
+            <button class="button" id="clearButton" type="button">Clear</button>
+          </div>
+          <div class="events" id="eventsList" aria-live="polite">
+            <div class="event">No spike events yet.</div>
+          </div>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const startButton = document.querySelector("#startButton");
+    const stopButton = document.querySelector("#stopButton");
+    const statusMessage = document.querySelector("#statusMessage");
+    const alertBox = document.querySelector("#alertBox");
+    const canvas = document.querySelector("#spectrumCanvas");
+    const context2d = canvas.getContext("2d");
+    const volumeValue = document.querySelector("#volumeValue");
+    const peakValue = document.querySelector("#peakValue");
+    const scoreValue = document.querySelector("#scoreValue");
+    const eventCount = document.querySelector("#eventCount");
+    const latencyValue = document.querySelector("#latencyValue");
+    const eventsList = document.querySelector("#eventsList");
+    const exportButton = document.querySelector("#exportButton");
+    const clearButton = document.querySelector("#clearButton");
+    const sensitivityInput = document.querySelector("#sensitivityInput");
+    const minimumInput = document.querySelector("#minimumInput");
+    const smoothingInput = document.querySelector("#smoothingInput");
+    const sensitivityText = document.querySelector("#sensitivityText");
+    const minimumText = document.querySelector("#minimumText");
+    const smoothingText = document.querySelector("#smoothingText");
+
+    let audioContext;
+    let analyser;
+    let mediaStream;
+    let animationId;
+    let frequencyData;
+    let timeData;
+    let baseline = 0.04;
+    let lastEventAt = 0;
+    let frameStartedAt = performance.now();
+    let events = [];
+
+    function updateSettingLabels() {
+      sensitivityText.textContent = `${Number(sensitivityInput.value).toFixed(2)}x baseline`;
+      minimumText.textContent = `${minimumInput.value}%`;
+      smoothingText.textContent = Number(smoothingInput.value).toFixed(2);
+      if (analyser) {
+        analyser.smoothingTimeConstant = Number(smoothingInput.value);
+      }
+    }
+
+    function drawIdle() {
+      const width = canvas.width;
+      const height = canvas.height;
+      context2d.clearRect(0, 0, width, height);
+      context2d.fillStyle = "#13211f";
+      context2d.fillRect(0, 0, width, height);
+      context2d.strokeStyle = "rgba(255, 250, 240, 0.14)";
+      context2d.lineWidth = 1;
+      for (let x = 0; x < width; x += 80) {
+        context2d.beginPath();
+        context2d.moveTo(x, 0);
+        context2d.lineTo(x, height);
+        context2d.stroke();
+      }
+      context2d.fillStyle = "rgba(255, 250, 240, 0.78)";
+      context2d.font = "700 28px Segoe UI, sans-serif";
+      context2d.fillText("Waiting for microphone input", 34, height - 38);
+    }
+
+    function calculateRms(samples) {
+      let sum = 0;
+      for (const sample of samples) {
+        const centered = (sample - 128) / 128;
+        sum += centered * centered;
+      }
+      return Math.sqrt(sum / samples.length);
+    }
+
+    function findPeakFrequency(data) {
+      let peakIndex = 0;
+      let peakLevel = 0;
+      for (let index = 0; index < data.length; index += 1) {
+        if (data[index] > peakLevel) {
+          peakLevel = data[index];
+          peakIndex = index;
+        }
+      }
+      const nyquist = audioContext.sampleRate / 2;
+      return Math.round((peakIndex / data.length) * nyquist);
+    }
+
+    function drawSpectrum(data, volume, score, isSpike) {
+      const width = canvas.width;
+      const height = canvas.height;
+      context2d.clearRect(0, 0, width, height);
+      const gradient = context2d.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, "#12201e");
+      gradient.addColorStop(1, isSpike ? "#3a1815" : "#183029");
+      context2d.fillStyle = gradient;
+      context2d.fillRect(0, 0, width, height);
+
+      const barWidth = width / data.length;
+      for (let index = 0; index < data.length; index += 1) {
+        const normalized = data[index] / 255;
+        const barHeight = Math.max(2, normalized * height * 0.92);
+        const hue = 174 - normalized * 120;
+        context2d.fillStyle = `hsl(${hue}, 62%, ${42 + normalized * 20}%)`;
+        context2d.fillRect(index * barWidth, height - barHeight, Math.max(1, barWidth - 1), barHeight);
+      }
+
+      context2d.strokeStyle = "rgba(255, 250, 240, 0.82)";
+      context2d.lineWidth = 3;
+      context2d.beginPath();
+      const radius = Math.max(16, volume * 155);
+      context2d.arc(width - 96, 92, radius, 0, Math.PI * 2);
+      context2d.stroke();
+
+      context2d.fillStyle = "rgba(255, 250, 240, 0.86)";
+      context2d.font = "800 24px Segoe UI, sans-serif";
+      context2d.fillText(`Spike score ${score.toFixed(2)}`, 30, 48);
+    }
+
+    function renderEvents() {
+      eventCount.textContent = String(events.length);
+      if (events.length === 0) {
+        eventsList.innerHTML = '<div class="event">No spike events yet.</div>';
+        return;
+      }
+      eventsList.innerHTML = events
+        .slice(0, 20)
+        .map((event) => `
+          <div class="event">
+            <time>${event.time}</time>
+            Spike score ${event.score.toFixed(2)} - volume ${event.volume}% - peak ${event.peakFrequency} Hz
+          </div>
+        `)
+        .join("");
+    }
+
+    function logEvent(score, volume, peakFrequency) {
+      const now = Date.now();
+      if (now - lastEventAt < 1200) {
+        return;
+      }
+      lastEventAt = now;
+      events.unshift({
+        time: new Date().toLocaleTimeString(),
+        score,
+        volume,
+        peakFrequency,
+      });
+      renderEvents();
+    }
+
+    function analyze() {
+      frameStartedAt = performance.now();
+      analyser.getByteFrequencyData(frequencyData);
+      analyser.getByteTimeDomainData(timeData);
+
+      const rms = calculateRms(timeData);
+      baseline = baseline * 0.985 + rms * 0.015;
+      const volumePercent = Math.min(100, Math.round(rms * 220));
+      const peakFrequency = findPeakFrequency(frequencyData);
+      const minimumVolume = Number(minimumInput.value);
+      const sensitivity = Number(sensitivityInput.value);
+      const score = baseline > 0 ? rms / (baseline * sensitivity) : 0;
+      const isSpike = volumePercent >= minimumVolume && score >= 1;
+
+      volumeValue.textContent = `${volumePercent}%`;
+      peakValue.textContent = `${peakFrequency} Hz`;
+      scoreValue.textContent = score.toFixed(2);
+      latencyValue.textContent = `${Math.round(performance.now() - frameStartedAt)} ms`;
+      drawSpectrum(frequencyData, rms, score, isSpike);
+
+      if (isSpike) {
+        alertBox.innerHTML = `<span><strong>Spike detected:</strong> score ${score.toFixed(2)} at ${peakFrequency} Hz.</span><span>${latencyValue.textContent}</span>`;
+        logEvent(score, volumePercent, peakFrequency);
+      } else {
+        alertBox.innerHTML = `<span><strong>Status:</strong> monitoring live audio.</span><span>${latencyValue.textContent}</span>`;
+      }
+
+      animationId = requestAnimationFrame(analyze);
+    }
+
+    async function startMicrophone() {
+      try {
+        startButton.disabled = true;
+        statusMessage.textContent = "Requesting microphone access...";
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        audioContext = new AudioContext();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 2048;
+        analyser.smoothingTimeConstant = Number(smoothingInput.value);
+        const source = audioContext.createMediaStreamSource(mediaStream);
+        source.connect(analyser);
+        frequencyData = new Uint8Array(analyser.frequencyBinCount);
+        timeData = new Uint8Array(analyser.fftSize);
+        statusMessage.hidden = true;
+        stopButton.disabled = false;
+        analyze();
+      } catch (error) {
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        const isPermissionIssue = error.name === "NotAllowedError" || error.name === "SecurityError";
+        statusMessage.hidden = false;
+        statusMessage.textContent = isPermissionIssue
+          ? "Microphone permission was denied. Enable microphone access in the browser and try again."
+          : "No microphone could be opened. Check that a device is connected and not already in use.";
+      }
+    }
+
+    function stopMicrophone() {
+      cancelAnimationFrame(animationId);
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((track) => track.stop());
+      }
+      if (audioContext) {
+        audioContext.close();
+      }
+      audioContext = undefined;
+      analyser = undefined;
+      mediaStream = undefined;
+      startButton.disabled = false;
+      stopButton.disabled = true;
+      statusMessage.hidden = false;
+      statusMessage.textContent = "Microphone stopped. Press Start microphone to resume tracking.";
+      alertBox.innerHTML = '<span><strong>Status:</strong> paused.</span><span>0 ms</span>';
+      drawIdle();
+    }
+
+    function exportCsv() {
+      const header = "time,score,volume_percent,peak_frequency_hz";
+      const rows = events.map((event) => `${event.time},${event.score.toFixed(3)},${event.volume},${event.peakFrequency}`);
+      const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "micpulse-events.csv";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    startButton.addEventListener("click", startMicrophone);
+    stopButton.addEventListener("click", stopMicrophone);
+    exportButton.addEventListener("click", exportCsv);
+    clearButton.addEventListener("click", () => {
+      events = [];
+      renderEvents();
+    });
+    [sensitivityInput, minimumInput, smoothingInput].forEach((input) => {
+      input.addEventListener("input", updateSettingLabels);
+    });
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      startButton.disabled = true;
+      statusMessage.textContent = "This browser does not support microphone capture. Try the latest Chrome, Edge, Firefox, or Safari.";
+    }
+
+    updateSettingLabels();
+    drawIdle();
+  </script>
+</body>
+</html>

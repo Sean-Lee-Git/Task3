@@ -1,0 +1,1 @@
+# Static app: no Python runtime dependencies are required.
